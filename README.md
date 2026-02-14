@@ -14,8 +14,8 @@ SVGs are synced from `mapsicon` and kept with original filenames.
 
 - Source: https://github.com/djaiss/mapsicon
 - Local mirror: `vendor/mapsicon` (ignored by git)
-- Extracted assets: `public/country-shapes/**.svg`
-- Manifest: `public/country-shapes/manifest.json`
+- Extracted assets: `country-shapes/**.svg`
+- Manifest: `country-shapes/manifest.json`
 
 ## Sync SVGs
 ```bash

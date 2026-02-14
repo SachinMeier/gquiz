@@ -22,6 +22,7 @@ let i = 0;
 let right = 0;
 let wrong = 0;
 let flipped = false;
+let gradingInProgress = false;
 
 const MODE_LABELS = {
   outlines: 'Outlines',
@@ -99,7 +100,21 @@ function nextCard() {
   render();
 }
 
-function grade(ok) {
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function grade(ok) {
+  if (gradingInProgress) return;
+  gradingInProgress = true;
+
+  // Always show answer before scoring if hidden.
+  if (!flipped) {
+    flipped = true;
+    render();
+  }
+
+  // Let user see the answer before moving on.
+  await sleep(1500);
+
   if (ok) {
     right += 1;
     feedback('correct');
@@ -109,10 +124,15 @@ function grade(ok) {
     feedback('wrong');
     showToast('Wrong');
   }
+
+  // Let feedback flash finish, then move to next card.
+  await sleep(300);
   nextCard();
+  gradingInProgress = false;
 }
 
 function toggleFlip() {
+  if (gradingInProgress) return;
   flipped = !flipped;
   render();
 }

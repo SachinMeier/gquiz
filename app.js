@@ -48,9 +48,14 @@ function feedback(type) {
   setTimeout(() => app.classList.remove(type), 260);
 }
 
+function flagImage(code, name) {
+  const lower = String(code || '').toLowerCase();
+  return `<img class="flag-img" alt="Flag of ${name}" src="https://flagcdn.com/w640/${lower}.png" loading="lazy"/>`;
+}
+
 function frontContent(c) {
   if (mode === 'flags') {
-    return `<div class="visual"><div class="flag">${c.flag || '🏳️'}</div></div><div class="label">Tap to reveal</div>`;
+    return `<div class="visual">${flagImage(c.code, c.name)}</div><div class="label">Tap to reveal</div>`;
   }
   if (mode === 'capitals') {
     return `<div class="visual"></div><div class="label">${c.capital || 'Unknown capital'}</div><div class="sub">Tap to reveal country</div>`;
@@ -60,7 +65,7 @@ function frontContent(c) {
 
 function backContent(c) {
   if (mode === 'flags') {
-    return `<div class="visual"><div class="flag">${c.flag || '🏳️'}</div></div><div class="label">${c.name}</div>`;
+    return `<div class="visual">${flagImage(c.code, c.name)}</div><div class="label">${c.name}</div>`;
   }
   if (mode === 'capitals') {
     return `<div class="visual"></div><div class="label">${c.name}</div><div class="sub">Capital: ${c.capital || 'Unknown'}</div>`;
@@ -88,13 +93,7 @@ function nextCard() {
   render();
 }
 
-function answer(ok) {
-  if (!flipped) {
-    flipped = true;
-    render();
-    return;
-  }
-
+function grade(ok) {
   if (ok) {
     right += 1;
     feedback('correct');
@@ -120,9 +119,25 @@ card.addEventListener('keydown', (e) => {
   }
 });
 
-rightBtn.addEventListener('click', () => answer(true));
-wrongBtn.addEventListener('click', () => answer(false));
+rightBtn.addEventListener('click', () => grade(true));
+wrongBtn.addEventListener('click', () => grade(false));
 flipBtn.addEventListener('click', toggleFlip);
+
+window.addEventListener('keydown', (e) => {
+  const tag = (document.activeElement?.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea') return;
+
+  if (e.key === ' ') {
+    e.preventDefault();
+    toggleFlip();
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    grade(false);
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    grade(true);
+  }
+});
 
 let startX = 0;
 let currentX = 0;
@@ -146,8 +161,8 @@ card.addEventListener('touchend', () => {
   dragging = false;
   const dx = currentX - startX;
   card.style.transform = '';
-  if (dx > 70) answer(true);
-  else if (dx < -70) answer(false);
+  if (dx > 70) grade(true);
+  else if (dx < -70) grade(false);
 });
 
 settingsBtn.addEventListener('click', () => settingsPanel.classList.toggle('hidden'));
@@ -188,7 +203,6 @@ settingsPanel.addEventListener('change', (e) => {
       path: shape.path,
       name: countryByCode.get(code).name,
       capital: countryByCode.get(code).capital,
-      flag: countryByCode.get(code).flag,
     }))
   );
 

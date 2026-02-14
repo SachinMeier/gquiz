@@ -128,7 +128,7 @@ function frontContent(c) {
     return `<div class="visual">${flagImage(c.flagPath, c.name)}</div><div class="label">Tap to reveal</div>`;
   }
   if (mode === 'capitals') {
-    return `<div class="visual"></div><div class="label">${c.capital || 'Unknown capital'}</div><div class="sub">Tap to reveal country</div>`;
+    return `<div class="visual"></div><div class="label">${c.name}</div><div class="sub">Tap to reveal capital</div>`;
   }
   return `<div class="visual"><img alt="Country outline" src="${c.path}"/></div><div class="label">Tap to reveal</div>`;
 }
@@ -138,7 +138,7 @@ function backContent(c) {
     return `<div class="visual">${flagImage(c.flagPath, c.name)}</div><div class="label">${c.name}</div>`;
   }
   if (mode === 'capitals') {
-    return `<div class="visual"></div><div class="label">${c.name}</div><div class="sub">Capital: ${c.capital || 'Unknown'}</div>`;
+    return `<div class="visual"></div><div class="label">${c.capital || 'Unknown capital'}</div><div class="sub">${c.name}</div>`;
   }
   return `<div class="visual"><img alt="Country outline" src="${c.path}"/></div><div class="label">${c.name}</div>`;
 }

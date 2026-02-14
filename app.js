@@ -54,14 +54,13 @@ function feedback(type) {
   card.classList.add(cls);
 }
 
-function flagImage(code, name) {
-  const lower = String(code || '').toLowerCase();
-  return `<img class="flag-img" alt="Flag of ${name}" src="https://flagcdn.com/w640/${lower}.png" loading="lazy"/>`;
+function flagImage(src, name) {
+  return `<img class="flag-img" alt="Flag of ${name}" src="${src}" loading="lazy"/>`;
 }
 
 function frontContent(c) {
   if (mode === 'flags') {
-    return `<div class="visual">${flagImage(c.code, c.name)}</div><div class="label">Tap to reveal</div>`;
+    return `<div class="visual">${flagImage(c.flagPath, c.name)}</div><div class="label">Tap to reveal</div>`;
   }
   if (mode === 'capitals') {
     return `<div class="visual"></div><div class="label">${c.capital || 'Unknown capital'}</div><div class="sub">Tap to reveal country</div>`;
@@ -71,7 +70,7 @@ function frontContent(c) {
 
 function backContent(c) {
   if (mode === 'flags') {
-    return `<div class="visual">${flagImage(c.code, c.name)}</div><div class="label">${c.name}</div>`;
+    return `<div class="visual">${flagImage(c.flagPath, c.name)}</div><div class="label">${c.name}</div>`;
   }
   if (mode === 'capitals') {
     return `<div class="visual"></div><div class="label">${c.name}</div><div class="sub">Capital: ${c.capital || 'Unknown'}</div>`;
@@ -202,31 +201,16 @@ settingsPanel.addEventListener('change', (e) => {
 });
 
 (async function init() {
-  const [shapeRes, countriesRes] = await Promise.all([
-    fetch('/country-shapes/manifest.json'),
-    fetch('/data/countries.json'),
-  ]);
-
-  const allShapes = await shapeRes.json();
-  const countries = await countriesRes.json();
-  const countryByCode = new Map(countries.map((c) => [c.code, c]));
-
-  // One outline per country code, prefer /all/
-  const shapeByCode = new Map();
-  for (const s of allShapes) {
-    if (!countryByCode.has(s.code)) continue;
-    const existing = shapeByCode.get(s.code);
-    if (!existing || (s.path.includes('/all/') && !existing.path.includes('/all/'))) {
-      shapeByCode.set(s.code, s);
-    }
-  }
+  const cardsRes = await fetch('/data/cards.json');
+  const allCards = await cardsRes.json();
 
   cards = shuffle(
-    Array.from(shapeByCode.entries()).map(([code, shape]) => ({
-      code,
-      path: shape.path,
-      name: countryByCode.get(code).name,
-      capital: countryByCode.get(code).capital,
+    allCards.map((c) => ({
+      code: c.code,
+      path: c.shapePath,
+      name: c.name,
+      capital: c.capital,
+      flagPath: c.flagPath,
     }))
   );
 

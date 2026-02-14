@@ -15,7 +15,8 @@ const settingsBtn = document.getElementById('settingsBtn');
 const settingsPanel = document.getElementById('settingsPanel');
 const closeSettings = document.getElementById('closeSettings');
 
-let mode = 'outlines';
+const MODE_STORAGE_KEY = 'geolearn.mode';
+let mode = localStorage.getItem(MODE_STORAGE_KEY) || 'outlines';
 let cards = [];
 let i = 0;
 let right = 0;
@@ -27,6 +28,10 @@ const MODE_LABELS = {
   flags: 'Flags',
   capitals: 'Capitals',
 };
+
+if (!MODE_LABELS[mode]) {
+  mode = 'outlines';
+}
 
 function shuffle(arr) {
   for (let j = arr.length - 1; j > 0; j--) {
@@ -172,6 +177,7 @@ settingsPanel.addEventListener('change', (e) => {
   const t = e.target;
   if (t && t.name === 'mode') {
     mode = t.value;
+    localStorage.setItem(MODE_STORAGE_KEY, mode);
     flipped = false;
     render();
   }
@@ -205,6 +211,9 @@ settingsPanel.addEventListener('change', (e) => {
       capital: countryByCode.get(code).capital,
     }))
   );
+
+  const modeInput = settingsPanel.querySelector(`input[name="mode"][value="${mode}"]`);
+  if (modeInput) modeInput.checked = true;
 
   render();
 })();

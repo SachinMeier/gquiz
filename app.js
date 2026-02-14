@@ -52,7 +52,6 @@ function feedback(type) {
   card.classList.remove('correct-flash', 'wrong-flash');
   const cls = type === 'correct' ? 'correct-flash' : 'wrong-flash';
   card.classList.add(cls);
-  setTimeout(() => card.classList.remove(cls), 260);
 }
 
 function flagImage(code, name) {
@@ -95,6 +94,7 @@ function render() {
 }
 
 function nextCard() {
+  card.classList.remove('correct-flash', 'wrong-flash');
   flipped = false;
   i = (i + 1) % cards.length;
   render();
@@ -112,9 +112,6 @@ async function grade(ok) {
     render();
   }
 
-  // Let user see the answer before moving on.
-  await sleep(1500);
-
   if (ok) {
     right += 1;
     feedback('correct');
@@ -125,8 +122,8 @@ async function grade(ok) {
     showToast('Wrong');
   }
 
-  // Let feedback flash finish, then move to next card.
-  await sleep(300);
+  // Keep feedback visible while answer is shown.
+  await sleep(1500);
   nextCard();
   gradingInProgress = false;
 }

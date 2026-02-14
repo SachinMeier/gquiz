@@ -48,9 +48,10 @@ function showToast(msg) {
 }
 
 function feedback(type) {
-  app.classList.remove('correct', 'wrong');
-  app.classList.add(type);
-  setTimeout(() => app.classList.remove(type), 260);
+  card.classList.remove('correct-flash', 'wrong-flash');
+  const cls = type === 'correct' ? 'correct-flash' : 'wrong-flash';
+  card.classList.add(cls);
+  setTimeout(() => card.classList.remove(cls), 260);
 }
 
 function flagImage(code, name) {

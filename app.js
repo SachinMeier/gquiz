@@ -217,10 +217,10 @@ window.addEventListener('keydown', (e) => {
   if (e.key === ' ') {
     e.preventDefault();
     toggleFlip();
-  } else if (e.key === 'ArrowLeft') {
+  } else if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'w') {
     e.preventDefault();
     grade(false);
-  } else if (e.key === 'ArrowRight') {
+  } else if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'r') {
     e.preventDefault();
     grade(true);
   }

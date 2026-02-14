@@ -81,6 +81,7 @@ body { margin:0; font-family: Inter, system-ui, sans-serif; background: var(--bg
 .visual img { max-width:100%; max-height:34dvh; filter: invert(1) brightness(1.05); }
 .visual img.flag-img { max-width: 100%; max-height: 36dvh; border-radius: 10px; object-fit: contain; filter: none; border: 1px solid #374151; }
 .label { text-align:center; font-size:1.3rem; font-weight:700; margin-top:8px; }
+.label.top { margin-top: 0; margin-bottom: 8px; }
 .sub { text-align:center; color:var(--muted); margin-top:4px; font-weight:600; }
 .actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
 .btn { border:0; border-radius:12px; padding:12px 10px; color:#fff; font-weight:700; }

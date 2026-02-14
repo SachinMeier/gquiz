@@ -16,6 +16,11 @@
         <button id="settingsBtn" class="icon-btn" aria-label="Open settings">⚙️</button>
       </header>
 
+      <section class="search-wrap" aria-label="Country search">
+        <input id="countrySearch" type="text" placeholder="Search country or code (e.g. Rwanda or RW)" autocomplete="off" />
+        <ul id="searchResults" class="search-results hidden" role="listbox" aria-label="Country suggestions"></ul>
+      </section>
+
       <section class="stats" aria-live="polite">
         <span id="progress">0 / 0</span>
         <span id="score">✅ 0 · ❌ 0</span>

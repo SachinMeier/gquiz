@@ -15,6 +15,9 @@ const settingsBtn = document.getElementById('settingsBtn');
 const settingsPanel = document.getElementById('settingsPanel');
 const closeSettings = document.getElementById('closeSettings');
 
+const countrySearch = document.getElementById('countrySearch');
+const searchResults = document.getElementById('searchResults');
+
 const MODE_STORAGE_KEY = 'geolearn.mode';
 let mode = localStorage.getItem(MODE_STORAGE_KEY) || 'outlines';
 let cards = [];
@@ -23,6 +26,9 @@ let right = 0;
 let wrong = 0;
 let flipped = false;
 let gradingInProgress = false;
+let codeToIndex = new Map();
+let searchMatches = [];
+let searchActiveIndex = 0;
 
 const MODE_LABELS = {
   outlines: 'Outlines',
@@ -32,6 +38,65 @@ const MODE_LABELS = {
 
 if (!MODE_LABELS[mode]) {
   mode = 'outlines';
+}
+
+function norm(s) {
+  return String(s || '').toLowerCase().trim();
+}
+
+function scoreMatch(cardItem, query) {
+  const q = norm(query);
+  if (!q) return -1;
+
+  const code = norm(cardItem.code);
+  const name = norm(cardItem.name);
+
+  if (code === q) return 1000;
+  if (name === q) return 950;
+  if (name.startsWith(q)) return 800 - (name.length - q.length);
+  if (code.startsWith(q)) return 760;
+  if (name.includes(q)) return 650 - name.indexOf(q);
+
+  // lightweight fuzzy: query chars in order inside name
+  let qi = 0;
+  for (const ch of name) {
+    if (ch === q[qi]) qi += 1;
+    if (qi === q.length) return 400;
+  }
+  return -1;
+}
+
+function hideSearchResults() {
+  searchResults.classList.add('hidden');
+  searchResults.innerHTML = '';
+  searchMatches = [];
+  searchActiveIndex = 0;
+}
+
+function jumpToCountry(code) {
+  const target = codeToIndex.get(code);
+  if (target === undefined) return;
+  i = target;
+  flipped = false;
+  render();
+}
+
+function renderSearchResults() {
+  if (!searchMatches.length) {
+    hideSearchResults();
+    return;
+  }
+
+  searchResults.innerHTML = searchMatches
+    .map((m, idx) => `
+      <li class="${idx === searchActiveIndex ? 'active' : ''}" data-code="${m.code}">
+        <span>${m.name}</span>
+        <span class="code">${m.code}</span>
+      </li>
+    `)
+    .join('');
+
+  searchResults.classList.remove('hidden');
 }
 
 function shuffle(arr) {
@@ -200,6 +265,63 @@ settingsPanel.addEventListener('change', (e) => {
   }
 });
 
+countrySearch.addEventListener('input', () => {
+  const q = countrySearch.value;
+  if (!q.trim()) {
+    hideSearchResults();
+    return;
+  }
+
+  searchMatches = cards
+    .map((c) => ({ c, score: scoreMatch(c, q) }))
+    .filter((x) => x.score >= 0)
+    .sort((a, b) => b.score - a.score || a.c.name.localeCompare(b.c.name))
+    .slice(0, 8)
+    .map((x) => x.c);
+
+  searchActiveIndex = 0;
+  renderSearchResults();
+});
+
+countrySearch.addEventListener('keydown', (e) => {
+  if (!searchMatches.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    searchActiveIndex = (searchActiveIndex + 1) % searchMatches.length;
+    renderSearchResults();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    searchActiveIndex = (searchActiveIndex - 1 + searchMatches.length) % searchMatches.length;
+    renderSearchResults();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const chosen = searchMatches[searchActiveIndex];
+    if (!chosen) return;
+    jumpToCountry(chosen.code);
+    countrySearch.value = `${chosen.name} (${chosen.code})`;
+    hideSearchResults();
+  } else if (e.key === 'Escape') {
+    hideSearchResults();
+  }
+});
+
+searchResults.addEventListener('mousedown', (e) => {
+  const li = e.target.closest('li[data-code]');
+  if (!li) return;
+  const code = li.dataset.code;
+  const chosen = searchMatches.find((x) => x.code === code);
+  if (!chosen) return;
+  jumpToCountry(chosen.code);
+  countrySearch.value = `${chosen.name} (${chosen.code})`;
+  hideSearchResults();
+});
+
+document.addEventListener('click', (e) => {
+  if (e.target === countrySearch || searchResults.contains(e.target)) return;
+  hideSearchResults();
+});
+
 (async function init() {
   const cardsRes = await fetch('/data/cards.json');
   const allCards = await cardsRes.json();
@@ -213,6 +335,8 @@ settingsPanel.addEventListener('change', (e) => {
       flagPath: c.flagPath,
     }))
   );
+
+  codeToIndex = new Map(cards.map((c, idx) => [c.code, idx]));
 
   const modeInput = settingsPanel.querySelector(`input[name="mode"][value="${mode}"]`);
   if (modeInput) modeInput.checked = true;

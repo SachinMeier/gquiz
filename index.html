@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>GeoLearn</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app" id="app">
+      <header class="topbar">
+        <h1>GeoLearn</h1>
+        <p>Learn country shapes fast.</p>
+      </header>
+
+      <section class="stats" aria-live="polite">
+        <span id="progress">0 / 0</span>
+        <span id="score">✅ 0 · ❌ 0</span>
+      </section>
+
+      <section class="card-wrap">
+        <article class="card" id="card" role="button" tabindex="0" aria-label="Country shape card">
+          <div class="shape" id="shape"></div>
+          <div class="name" id="name">Tap to reveal</div>
+        </article>
+      </section>
+
+      <section class="actions">
+        <button id="wrongBtn" class="btn wrong">← Wrong</button>
+        <button id="revealBtn" class="btn neutral">Tap / Reveal</button>
+        <button id="rightBtn" class="btn right">Right →</button>
+      </section>
+
+      <p class="hint">Swipe left = wrong, swipe right = right</p>
+      <div id="toast" class="toast" aria-live="assertive"></div>
+    </main>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

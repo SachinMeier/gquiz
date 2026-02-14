@@ -1,27 +1,32 @@
 const app = document.getElementById('app');
 const card = document.getElementById('card');
-const shape = document.getElementById('shape');
-const nameEl = document.getElementById('name');
+const front = document.getElementById('front');
+const back = document.getElementById('back');
 const progressEl = document.getElementById('progress');
 const scoreEl = document.getElementById('score');
 const toast = document.getElementById('toast');
+const modeLabel = document.getElementById('modeLabel');
 
 const wrongBtn = document.getElementById('wrongBtn');
 const rightBtn = document.getElementById('rightBtn');
-const revealBtn = document.getElementById('revealBtn');
+const flipBtn = document.getElementById('flipBtn');
 
-const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsPanel = document.getElementById('settingsPanel');
+const closeSettings = document.getElementById('closeSettings');
 
+let mode = 'outlines';
 let cards = [];
 let i = 0;
 let right = 0;
 let wrong = 0;
-let revealed = false;
+let flipped = false;
 
-function labelFor(cardItem) {
-  const maybe = regionNames.of(cardItem.code);
-  return maybe && maybe !== cardItem.code ? maybe : cardItem.code;
-}
+const MODE_LABELS = {
+  outlines: 'Outlines',
+  flags: 'Flags',
+  capitals: 'Capitals',
+};
 
 function shuffle(arr) {
   for (let j = arr.length - 1; j > 0; j--) {
@@ -31,20 +36,10 @@ function shuffle(arr) {
   return arr;
 }
 
-function render() {
-  if (!cards.length) return;
-  if (i >= cards.length) i = 0;
-  const c = cards[i];
-  shape.innerHTML = `<img alt="Country shape" src="${c.path}" />`;
-  nameEl.textContent = revealed ? labelFor(c) : 'Tap to reveal';
-  progressEl.textContent = `${i + 1} / ${cards.length}`;
-  scoreEl.textContent = `✅ ${right} · ❌ ${wrong}`;
-}
-
 function showToast(msg) {
   toast.textContent = msg;
   toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 850);
+  setTimeout(() => toast.classList.remove('show'), 900);
 }
 
 function feedback(type) {
@@ -53,9 +48,49 @@ function feedback(type) {
   setTimeout(() => app.classList.remove(type), 260);
 }
 
+function frontContent(c) {
+  if (mode === 'flags') {
+    return `<div class="visual"><div class="flag">${c.flag || '🏳️'}</div></div><div class="label">Tap to reveal</div>`;
+  }
+  if (mode === 'capitals') {
+    return `<div class="visual"></div><div class="label">${c.capital || 'Unknown capital'}</div><div class="sub">Tap to reveal country</div>`;
+  }
+  return `<div class="visual"><img alt="Country outline" src="${c.path}"/></div><div class="label">Tap to reveal</div>`;
+}
+
+function backContent(c) {
+  if (mode === 'flags') {
+    return `<div class="visual"><div class="flag">${c.flag || '🏳️'}</div></div><div class="label">${c.name}</div>`;
+  }
+  if (mode === 'capitals') {
+    return `<div class="visual"></div><div class="label">${c.name}</div><div class="sub">Capital: ${c.capital || 'Unknown'}</div>`;
+  }
+  return `<div class="visual"><img alt="Country outline" src="${c.path}"/></div><div class="label">${c.name}</div>`;
+}
+
+function render() {
+  if (!cards.length) return;
+  if (i >= cards.length) i = 0;
+
+  const c = cards[i];
+  front.innerHTML = frontContent(c);
+  back.innerHTML = backContent(c);
+  card.classList.toggle('flipped', flipped);
+
+  progressEl.textContent = `${i + 1} / ${cards.length}`;
+  scoreEl.textContent = `✅ ${right} · ❌ ${wrong}`;
+  modeLabel.textContent = `Mode: ${MODE_LABELS[mode]}`;
+}
+
+function nextCard() {
+  flipped = false;
+  i = (i + 1) % cards.length;
+  render();
+}
+
 function answer(ok) {
-  if (!revealed) {
-    revealed = true;
+  if (!flipped) {
+    flipped = true;
     render();
     return;
   }
@@ -69,34 +104,25 @@ function answer(ok) {
     feedback('wrong');
     showToast('Wrong');
   }
+  nextCard();
+}
 
-  revealed = false;
-  i = (i + 1) % cards.length;
+function toggleFlip() {
+  flipped = !flipped;
   render();
 }
 
-card.addEventListener('click', () => {
-  if (!revealed) {
-    revealed = true;
-    render();
-  }
-});
+card.addEventListener('click', toggleFlip);
 card.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault();
-    if (!revealed) {
-      revealed = true;
-      render();
-    }
+    toggleFlip();
   }
 });
 
 rightBtn.addEventListener('click', () => answer(true));
 wrongBtn.addEventListener('click', () => answer(false));
-revealBtn.addEventListener('click', () => {
-  revealed = true;
-  render();
-});
+flipBtn.addEventListener('click', toggleFlip);
 
 let startX = 0;
 let currentX = 0;
@@ -112,7 +138,7 @@ card.addEventListener('touchmove', (e) => {
   if (!dragging) return;
   currentX = e.touches[0].clientX;
   const dx = currentX - startX;
-  card.style.transform = `translateX(${dx}px) rotate(${dx * 0.03}deg)`;
+  card.style.transform = `${flipped ? 'rotateY(180deg)' : ''} translateX(${dx}px) rotate(${dx * 0.02}deg)`;
 }, { passive: true });
 
 card.addEventListener('touchend', () => {
@@ -121,22 +147,50 @@ card.addEventListener('touchend', () => {
   const dx = currentX - startX;
   card.style.transform = '';
   if (dx > 70) answer(true);
-  if (dx < -70) answer(false);
+  else if (dx < -70) answer(false);
+});
+
+settingsBtn.addEventListener('click', () => settingsPanel.classList.toggle('hidden'));
+closeSettings.addEventListener('click', () => settingsPanel.classList.add('hidden'));
+
+settingsPanel.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t && t.name === 'mode') {
+    mode = t.value;
+    flipped = false;
+    render();
+  }
 });
 
 (async function init() {
-  const res = await fetch('/country-shapes/manifest.json');
-  const allCards = await res.json();
+  const [shapeRes, countriesRes] = await Promise.all([
+    fetch('/country-shapes/manifest.json'),
+    fetch('/data/countries.json'),
+  ]);
 
-  // Keep one shape per country code, preferring /all/ paths.
-  const byCode = new Map();
-  for (const item of allCards) {
-    const existing = byCode.get(item.code);
-    if (!existing || (item.path.includes('/all/') && !existing.path.includes('/all/'))) {
-      byCode.set(item.code, item);
+  const allShapes = await shapeRes.json();
+  const countries = await countriesRes.json();
+  const countryByCode = new Map(countries.map((c) => [c.code, c]));
+
+  // One outline per country code, prefer /all/
+  const shapeByCode = new Map();
+  for (const s of allShapes) {
+    if (!countryByCode.has(s.code)) continue;
+    const existing = shapeByCode.get(s.code);
+    if (!existing || (s.path.includes('/all/') && !existing.path.includes('/all/'))) {
+      shapeByCode.set(s.code, s);
     }
   }
 
-  cards = shuffle(Array.from(byCode.values()));
+  cards = shuffle(
+    Array.from(shapeByCode.entries()).map(([code, shape]) => ({
+      code,
+      path: shape.path,
+      name: countryByCode.get(code).name,
+      capital: countryByCode.get(code).capital,
+      flag: countryByCode.get(code).flag,
+    }))
+  );
+
   render();
 })();

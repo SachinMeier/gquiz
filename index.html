@@ -9,8 +9,11 @@
   <body>
     <main class="app" id="app">
       <header class="topbar">
-        <h1>GeoLearn</h1>
-        <p>Learn country shapes fast.</p>
+        <div>
+          <h1>GeoLearn</h1>
+          <p id="modeLabel">Mode: Outlines</p>
+        </div>
+        <button id="settingsBtn" class="icon-btn" aria-label="Open settings">⚙️</button>
       </header>
 
       <section class="stats" aria-live="polite">
@@ -19,20 +22,28 @@
       </section>
 
       <section class="card-wrap">
-        <article class="card" id="card" role="button" tabindex="0" aria-label="Country shape card">
-          <div class="shape" id="shape"></div>
-          <div class="name" id="name">Tap to reveal</div>
+        <article class="card" id="card" role="button" tabindex="0" aria-label="Flash card">
+          <div class="face front" id="front"></div>
+          <div class="face back" id="back"></div>
         </article>
       </section>
 
       <section class="actions">
         <button id="wrongBtn" class="btn wrong">← Wrong</button>
-        <button id="revealBtn" class="btn neutral">Tap / Reveal</button>
+        <button id="flipBtn" class="btn neutral">Tap / Flip</button>
         <button id="rightBtn" class="btn right">Right →</button>
       </section>
 
       <p class="hint">Swipe left = wrong, swipe right = right</p>
       <div id="toast" class="toast" aria-live="assertive"></div>
+
+      <aside id="settingsPanel" class="settings hidden" aria-label="Settings">
+        <h2>Settings</h2>
+        <label><input type="radio" name="mode" value="outlines" checked /> Outlines</label>
+        <label><input type="radio" name="mode" value="flags" /> Flags</label>
+        <label><input type="radio" name="mode" value="capitals" /> Capitals</label>
+        <button id="closeSettings" class="btn neutral">Close</button>
+      </aside>
     </main>
 
     <script type="module" src="app.js"></script>

@@ -318,8 +318,15 @@ searchResults.addEventListener('mousedown', (e) => {
 });
 
 document.addEventListener('click', (e) => {
-  if (e.target === countrySearch || searchResults.contains(e.target)) return;
-  hideSearchResults();
+  const target = e.target;
+
+  if (target !== countrySearch && !searchResults.contains(target)) {
+    hideSearchResults();
+  }
+
+  if (target !== settingsBtn && !settingsPanel.contains(target)) {
+    settingsPanel.classList.add('hidden');
+  }
 });
 
 (async function init() {

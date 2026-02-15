@@ -99,8 +99,10 @@ function persistCodes() {
 function trackCode(code, ok) {
   if (ok) {
     rightCodes.add(code);
+    wrongCodes.delete(code);
   } else {
     wrongCodes.add(code);
+    rightCodes.delete(code);
   }
   persistCodes();
 }

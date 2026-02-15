@@ -17,16 +17,19 @@
               <option value="flags">Flags</option>
               <option value="capitals">Capitals</option>
             </select>
-            <select id="continentSelect">
-              <option value="all">All Continents</option>
-              <option value="Africa">Africa</option>
-              <option value="Asia">Asia</option>
-              <option value="Europe">Europe</option>
-              <option value="North America">North America</option>
-              <option value="South America">South America</option>
-              <option value="Oceania">Oceania</option>
-              <option value="Antarctica">Antarctica</option>
-            </select>
+            <div class="continent-dropdown" id="continentDropdown">
+              <button type="button" class="continent-btn" id="continentBtn">All Continents</button>
+              <div class="continent-panel hidden" id="continentPanel">
+                <label class="continent-option"><input type="checkbox" value="Africa" checked /> Africa</label>
+                <label class="continent-option"><input type="checkbox" value="Asia" checked /> Asia</label>
+                <label class="continent-option"><input type="checkbox" value="Europe" checked /> Europe</label>
+                <label class="continent-option"><input type="checkbox" value="North America" checked /> N. America</label>
+                <label class="continent-option"><input type="checkbox" value="South America" checked /> S. America</label>
+                <label class="continent-option"><input type="checkbox" value="Oceania" checked /> Oceania</label>
+                <div class="continent-divider"></div>
+                <label class="continent-option"><input type="checkbox" id="microstateToggle" checked /> Include microstates</label>
+              </div>
+            </div>
           </div>
         </div>
       </header>

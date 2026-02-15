@@ -6,7 +6,10 @@ const progressEl = document.getElementById('progress');
 const scoreEl = document.getElementById('score');
 const toast = document.getElementById('toast');
 const modeSelect = document.getElementById('modeSelect');
-const continentSelect = document.getElementById('continentSelect');
+const continentBtn = document.getElementById('continentBtn');
+const continentPanel = document.getElementById('continentPanel');
+const continentDropdown = document.getElementById('continentDropdown');
+const microstateToggle = document.getElementById('microstateToggle');
 
 const wrongBtn = document.getElementById('wrongBtn');
 const rightBtn = document.getElementById('rightBtn');
@@ -24,10 +27,25 @@ const wrongScoreEl = document.getElementById('wrongScore');
 
 const MODE_STORAGE_KEY = 'geolearn.mode';
 const CONTINENT_STORAGE_KEY = 'geolearn.continent';
+const MICROSTATE_STORAGE_KEY = 'geolearn.includeMicrostates';
 const WRONG_CODES_KEY = 'geolearn.wrongCodes';
 const RIGHT_CODES_KEY = 'geolearn.rightCodes';
+const ALL_CONTINENTS = ['Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
 let mode = localStorage.getItem(MODE_STORAGE_KEY) || 'outlines';
-let continent = localStorage.getItem(CONTINENT_STORAGE_KEY) || 'all';
+
+// Backward compat: old value was a single string like "all" or "Europe"
+let selectedContinents = (() => {
+  const raw = localStorage.getItem(CONTINENT_STORAGE_KEY);
+  if (!raw) return [...ALL_CONTINENTS];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+  } catch {}
+  // Old single-string format
+  return raw === 'all' ? [...ALL_CONTINENTS] : [raw];
+})();
+
+let includeMicrostates = localStorage.getItem(MICROSTATE_STORAGE_KEY) !== 'false';
 let allCards = [];
 let cards = [];
 let i = 0;
@@ -170,12 +188,17 @@ function renderSearchResults() {
 }
 
 function applyFilters() {
-  if (continent === 'all') {
-    cards = [...allCards];
-  } else {
-    cards = allCards.filter((c) => c.continent === continent);
+  const prevCard = cards[i];
+  const allSelected = selectedContinents.length === ALL_CONTINENTS.length;
+  cards = allCards.filter((c) => {
+    if (!allSelected && !selectedContinents.includes(c.continent)) return false;
+    if (!includeMicrostates && c.microstate) return false;
+    return true;
+  });
+  // Keep current card visible so user can finish interacting with it
+  if (cards.length === 0 && prevCard) {
+    cards = [prevCard];
   }
-  if (cards.length === 0) cards = [...allCards];
   codeToIndex = new Map(cards.map((c, idx) => [c.code, idx]));
   i = 0;
   flipped = false;
@@ -281,11 +304,23 @@ function nextCard() {
 
   flipped = false;
 
-  // Skip countries already on the correct list
+  // Skip countries already on the correct list, unless all are correct
   const start = i;
   do {
     i = (i + 1) % cards.length;
   } while (rightCodes.has(cards[i].code) && i !== start);
+
+  // All cards marked right — just advance normally
+  if (rightCodes.has(cards[i].code)) {
+    i = (start + 1) % cards.length;
+  }
+
+  // Wrapped around — reshuffle for variety
+  if (i <= start) {
+    shuffle(cards);
+    codeToIndex = new Map(cards.map((c, idx) => [c.code, idx]));
+    i = 0;
+  }
 
   resetCardVisualState();
   render();
@@ -495,10 +530,53 @@ modeSelect.addEventListener('change', () => {
   render();
 });
 
-continentSelect.addEventListener('change', () => {
+function syncContinentCheckboxes() {
+  continentPanel.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+    if (cb === microstateToggle) {
+      cb.checked = includeMicrostates;
+    } else {
+      cb.checked = selectedContinents.includes(cb.value);
+    }
+  });
+  updateContinentBtnLabel();
+}
+
+function updateContinentBtnLabel() {
+  if (selectedContinents.length === ALL_CONTINENTS.length) {
+    continentBtn.textContent = 'All Continents';
+  } else if (selectedContinents.length === 0) {
+    continentBtn.textContent = 'No Continents';
+  } else if (selectedContinents.length <= 2) {
+    continentBtn.textContent = selectedContinents.join(', ');
+  } else {
+    continentBtn.textContent = `${selectedContinents.length} Continents`;
+  }
+}
+
+function persistFilters() {
+  localStorage.setItem(CONTINENT_STORAGE_KEY, JSON.stringify(selectedContinents));
+  localStorage.setItem(MICROSTATE_STORAGE_KEY, String(includeMicrostates));
+}
+
+continentBtn.addEventListener('click', () => {
+  continentPanel.classList.toggle('hidden');
+});
+
+continentPanel.addEventListener('change', (e) => {
+  const cb = e.target;
+  if (cb === microstateToggle) {
+    includeMicrostates = cb.checked;
+  } else {
+    const val = cb.value;
+    if (cb.checked) {
+      if (!selectedContinents.includes(val)) selectedContinents.push(val);
+    } else {
+      selectedContinents = selectedContinents.filter((c) => c !== val);
+    }
+  }
   cancelPendingGrade();
-  continent = continentSelect.value;
-  localStorage.setItem(CONTINENT_STORAGE_KEY, continent);
+  persistFilters();
+  updateContinentBtnLabel();
   applyFilters();
 });
 
@@ -592,6 +670,9 @@ document.addEventListener('click', (e) => {
     hideSearchResults();
   }
 
+  if (!continentDropdown.contains(target)) {
+    continentPanel.classList.add('hidden');
+  }
 });
 
 (async function init() {
@@ -613,10 +694,12 @@ document.addEventListener('click', (e) => {
     }
 
     let codeToContinent = new Map();
+    let codeToMicrostate = new Map();
     if (countriesRes.ok) {
       const countries = await countriesRes.json();
       emojiMap = new Map(countries.map((c) => [c.code, c.flag || '']));
       codeToContinent = new Map(countries.map((c) => [c.code, c.continent || '']));
+      codeToMicrostate = new Map(countries.map((c) => [c.code, !!c.microstate]));
     }
 
     allCards = shuffle(
@@ -628,6 +711,7 @@ document.addEventListener('click', (e) => {
         flagPath: c.flagPath,
         emoji: emojiMap.get(c.code) || '',
         continent: codeToContinent.get(c.code) || '',
+        microstate: codeToMicrostate.get(c.code) || false,
       }))
     );
 
@@ -636,7 +720,7 @@ document.addEventListener('click', (e) => {
     }
 
     modeSelect.value = mode;
-    continentSelect.value = continent;
+    syncContinentCheckboxes();
     applyFilters();
 
     cardsLoaded = true;

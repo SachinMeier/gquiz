@@ -11,9 +11,24 @@
       <header class="topbar">
         <div>
           <h1>GeoLearn</h1>
-          <p id="modeLabel">Mode: Outlines</p>
+          <div class="header-selects">
+            <select id="modeSelect">
+              <option value="outlines">Outlines</option>
+              <option value="flags">Flags</option>
+              <option value="capitals">Capitals</option>
+            </select>
+            <select id="continentSelect">
+              <option value="all">All Continents</option>
+              <option value="Africa">Africa</option>
+              <option value="Asia">Asia</option>
+              <option value="Europe">Europe</option>
+              <option value="North America">North America</option>
+              <option value="South America">South America</option>
+              <option value="Oceania">Oceania</option>
+              <option value="Antarctica">Antarctica</option>
+            </select>
+          </div>
         </div>
-        <button id="settingsBtn" class="icon-btn" aria-label="Open settings">⚙️</button>
       </header>
 
       <section class="search-wrap" aria-label="Country search">
@@ -23,7 +38,7 @@
 
       <section class="stats" aria-live="polite">
         <span id="progress">0 / 0</span>
-        <span id="score">✅ 0 · ❌ 0</span>
+        <span id="score"><span id="wrongScore" class="score-tap" role="button" tabindex="0">❌ 0</span> <span id="rightScore" class="score-tap" role="button" tabindex="0">✅ 0</span></span>
       </section>
 
       <section class="card-wrap">
@@ -42,13 +57,17 @@
       <p class="hint">Swipe left = wrong, swipe right = right</p>
       <div id="toast" class="toast" aria-live="assertive"></div>
 
-      <aside id="settingsPanel" class="settings hidden" aria-label="Settings">
-        <h2>Settings</h2>
-        <label><input type="radio" name="mode" value="outlines" checked /> Outlines</label>
-        <label><input type="radio" name="mode" value="flags" /> Flags</label>
-        <label><input type="radio" name="mode" value="capitals" /> Capitals</label>
-        <button id="closeSettings" class="btn neutral">Close</button>
-      </aside>
+      <dialog id="scoreModal" class="score-modal">
+        <form method="dialog" class="score-modal-inner">
+          <header class="score-modal-header">
+            <h2 id="scoreModalTitle">Wrong Answers</h2>
+            <button class="icon-btn" aria-label="Close modal">&times;</button>
+          </header>
+          <ul id="scoreModalList" class="score-modal-list"></ul>
+          <button id="clearListBtn" type="button" class="btn neutral score-modal-clear">Clear List</button>
+        </form>
+      </dialog>
+
     </main>
 
     <script type="module" src="app.js"></script>

@@ -14,6 +14,7 @@ const microstateToggle = document.getElementById('microstateToggle');
 const wrongBtn = document.getElementById('wrongBtn');
 const rightBtn = document.getElementById('rightBtn');
 const flipBtn = document.getElementById('flipBtn');
+const backBtn = document.getElementById('backBtn');
 
 const countrySearch = document.getElementById('countrySearch');
 const searchResults = document.getElementById('searchResults');
@@ -62,6 +63,7 @@ let emojiMap = new Map();
 let activeModalType = null;
 let searchMatches = [];
 let searchActiveIndex = 0;
+let history = [];
 
 if (!['outlines', 'flags', 'capitals'].includes(mode)) {
   mode = 'outlines';
@@ -141,7 +143,7 @@ function openScoreModal(type) {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     scoreModalList.innerHTML = sorted
-      .map((x) => `<li><span class="flag-emoji">${x.emoji}</span> ${x.name}</li>`)
+      .map((x) => `<li><span class="flag-emoji">${x.emoji}</span> <span class="modal-name">${x.name}</span><button class="remove-btn" data-code="${x.code}" aria-label="Remove ${x.name}">&times;</button></li>`)
       .join('');
   }
 
@@ -191,6 +193,7 @@ function applyFilters() {
   const prevCard = cards[i];
   const allSelected = selectedContinents.length === ALL_CONTINENTS.length;
   cards = allCards.filter((c) => {
+    if (rightCodes.has(c.code)) return false;
     if (!allSelected && !selectedContinents.includes(c.continent)) return false;
     if (!includeMicrostates && c.microstate) return false;
     return true;
@@ -200,9 +203,13 @@ function applyFilters() {
     cards = [prevCard];
   }
   codeToIndex = new Map(cards.map((c, idx) => [c.code, idx]));
-  i = 0;
-  flipped = false;
-  resetCardVisualState();
+  // Stay on the same card if it's still in the filtered deck
+  if (prevCard) {
+    const newIdx = codeToIndex.get(prevCard.code);
+    i = newIdx !== undefined ? newIdx : 0;
+  } else {
+    i = 0;
+  }
   render();
 }
 
@@ -255,7 +262,7 @@ function frontContent(c) {
     return `<div class="visual">${flagImage(c.flagPath, c.name)}</div><div class="label">Tap to reveal</div>`;
   }
   if (mode === 'capitals') {
-    return `<div class="label top">${c.name}</div><div class="visual">${flagImage(c.flagPath, c.name)}</div><div class="sub">Tap to reveal capital</div>`;
+    return `<div class="label top">${c.name}</div><div class="visual">${flagImage(c.flagPath, c.name)}</div><div class="label muted">Tap to reveal capital</div>`;
   }
   return `<div class="visual"><img alt="Country outline" src="${c.path}"/></div><div class="label">Tap to reveal</div>`;
 }
@@ -297,6 +304,7 @@ function render() {
   if (progressEl.textContent !== progressText) progressEl.textContent = progressText;
   if (rightScoreEl.textContent !== rightText) rightScoreEl.textContent = rightText;
   if (wrongScoreEl.textContent !== wrongText) wrongScoreEl.textContent = wrongText;
+  backBtn.disabled = history.length === 0;
 }
 
 function nextCard() {
@@ -304,24 +312,43 @@ function nextCard() {
 
   flipped = false;
 
-  // Skip countries already on the correct list, unless all are correct
-  const start = i;
-  do {
-    i = (i + 1) % cards.length;
-  } while (rightCodes.has(cards[i].code) && i !== start);
-
-  // All cards marked right — just advance normally
-  if (rightCodes.has(cards[i].code)) {
-    i = (start + 1) % cards.length;
+  // Remove the current card if it was just marked correct
+  if (rightCodes.has(cards[i]?.code)) {
+    cards.splice(i, 1);
+    codeToIndex = new Map(cards.map((c, idx) => [c.code, idx]));
+  } else {
+    i += 1;
   }
 
   // Wrapped around — reshuffle for variety
-  if (i <= start) {
+  if (i >= cards.length) {
     shuffle(cards);
     codeToIndex = new Map(cards.map((c, idx) => [c.code, idx]));
     i = 0;
   }
 
+  resetCardVisualState();
+  render();
+}
+
+function goBack() {
+  if (!history.length) return;
+
+  cancelPendingGrade();
+  const code = history.pop();
+
+  // Re-insert the card if it was removed (marked correct)
+  if (!codeToIndex.has(code)) {
+    const original = allCards.find((c) => c.code === code);
+    if (!original) return;
+    cards.splice(i, 0, original);
+    codeToIndex = new Map(cards.map((c, idx) => [c.code, idx]));
+  }
+
+  const target = codeToIndex.get(code);
+  if (target !== undefined) i = target;
+
+  flipped = false;
   resetCardVisualState();
   render();
 }
@@ -332,6 +359,8 @@ async function grade(ok) {
   if (!hasCards() || gradingInProgress) return;
   gradingInProgress = true;
   const gradeToken = ++activeGradeToken;
+
+  history.push(cards[i].code);
 
   // Always show answer before scoring if hidden.
   if (!flipped) {
@@ -370,23 +399,21 @@ function toggleFlip() {
   card.classList.toggle('flipped', flipped);
 }
 
-card.addEventListener('click', toggleFlip);
-card.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    toggleFlip();
-  }
+card.addEventListener('click', () => {
+  toggleFlip();
+  card.blur();
 });
 
 rightBtn.addEventListener('click', () => grade(true));
 wrongBtn.addEventListener('click', () => grade(false));
+backBtn.addEventListener('click', goBack);
 flipBtn.addEventListener('click', toggleFlip);
 
 window.addEventListener('keydown', (e) => {
   const tag = (document.activeElement?.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea') return;
 
-  if (e.key === ' ') {
+  if (e.key === ' ' || e.key === 'ArrowUp') {
     e.preventDefault();
     toggleFlip();
   } else if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') {
@@ -395,6 +422,9 @@ window.addEventListener('keydown', (e) => {
   } else if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'f') {
     e.preventDefault();
     grade(true);
+  } else if (e.key === 'ArrowDown' || e.key.toLowerCase() === 'b') {
+    e.preventDefault();
+    goBack();
   }
 });
 
@@ -402,6 +432,8 @@ async function gradeFromSwipe(ok, dx) {
   if (!hasCards() || gradingInProgress) return;
   gradingInProgress = true;
   const gradeToken = ++activeGradeToken;
+
+  history.push(cards[i].code);
 
   const currentCode = cards[i].code;
   trackCode(currentCode, ok);
@@ -525,8 +557,6 @@ modeSelect.addEventListener('change', () => {
   cancelPendingGrade();
   mode = modeSelect.value;
   localStorage.setItem(MODE_STORAGE_KEY, mode);
-  flipped = false;
-  resetCardVisualState();
   render();
 });
 
@@ -650,15 +680,31 @@ wrongScoreEl.addEventListener('click', () => openScoreModal('wrong'));
 
 scoreModal.addEventListener('click', (e) => {
   if (e.target === scoreModal) scoreModal.close();
+
+  const removeBtn = e.target.closest('.remove-btn');
+  if (!removeBtn) return;
+  const code = removeBtn.dataset.code;
+  if (activeModalType === 'right') {
+    rightCodes.delete(code);
+    persistCodes();
+    applyFilters();
+  } else {
+    wrongCodes.delete(code);
+    persistCodes();
+  }
+  render();
+  openScoreModal(activeModalType);
 });
 
 clearListBtn.addEventListener('click', () => {
   if (activeModalType === 'right') {
     rightCodes.clear();
+    persistCodes();
+    applyFilters();
   } else {
     wrongCodes.clear();
+    persistCodes();
   }
-  persistCodes();
   scoreModalList.innerHTML = '<li><span class="empty-msg">No countries yet.</span></li>';
   render();
 });

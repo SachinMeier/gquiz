@@ -45,7 +45,27 @@ body {
   padding: 8px 10px;
 }
 
-.stats { display: flex; justify-content: space-between; color: var(--muted); }
+.stats { display: flex; justify-content: space-between; align-items: center; color: var(--muted); }
+
+.back-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #374151;
+  background: #1f2937;
+  color: var(--muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 120ms ease, color 120ms ease;
+  flex-shrink: 0;
+}
+.back-btn:hover:not(:disabled) { background: #334155; color: #e5e7eb; }
+.back-btn:disabled { opacity: 0.3; cursor: default; }
 
 .search-wrap { position: relative; }
 
@@ -167,9 +187,9 @@ body {
   border: 1px solid #374151;
 }
 
-.label { text-align: center; font-size: 1.3rem; font-weight: 700; margin-top: 8px; min-height: 3.4rem; display: flex; align-items: center; justify-content: center; }
+.label { text-align: center; font-size: 1.3rem; font-weight: 700; margin-top: 8px; height: 3.4rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .label.top { margin-top: 0; margin-bottom: 8px; }
-.sub { text-align: center; color: var(--muted); margin-top: 4px; font-weight: 600; }
+.label.muted { color: var(--muted); font-weight: 600; }
 
 .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 
@@ -195,7 +215,11 @@ body {
   box-shadow: 0 10px 20px rgba(15, 23, 42, 0.35);
 }
 
-.hint { text-align: center; color: var(--muted); margin: 4px 0 0; }
+.hint { text-align: center; color: var(--muted); margin: 4px 0 0; display: none; }
+
+@media (max-width: 768px) {
+  .hint { display: block; }
+}
 
 .toast {
   position: fixed;
@@ -406,6 +430,20 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+.score-modal-list .modal-name { flex: 1; }
+.remove-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: color 120ms ease, background 120ms ease;
+}
+.remove-btn:hover { color: #ef4444; background: rgba(239, 68, 68, 0.15); }
 }
 .score-modal-list li:last-child { border-bottom: none; }
 .score-modal-list .flag-emoji { font-size: 1.4rem; }

@@ -40,21 +40,22 @@
       </section>
 
       <section class="stats" aria-live="polite">
+        <button id="backBtn" class="back-btn" tabindex="-1" aria-label="Previous card" disabled>&#8634;</button>
         <span id="progress">0 / 0</span>
-        <span id="score"><span id="wrongScore" class="score-tap" role="button" tabindex="0">❌ 0</span> <span id="rightScore" class="score-tap" role="button" tabindex="0">✅ 0</span></span>
+        <span id="score"><span id="wrongScore" class="score-tap" role="button" tabindex="-1">❌ 0</span> <span id="rightScore" class="score-tap" role="button" tabindex="-1">✅ 0</span></span>
       </section>
 
       <section class="card-wrap">
-        <article class="card" id="card" role="button" tabindex="0" aria-label="Flash card">
+        <article class="card" id="card" aria-label="Flash card">
           <div class="face front" id="front"></div>
           <div class="face back" id="back"></div>
         </article>
       </section>
 
       <section class="actions">
-        <button id="wrongBtn" class="btn wrong">← Wrong</button>
-        <button id="flipBtn" class="btn neutral">Tap / Flip</button>
-        <button id="rightBtn" class="btn right">Right →</button>
+        <button id="wrongBtn" class="btn wrong" tabindex="-1">← Wrong</button>
+        <button id="flipBtn" class="btn neutral" tabindex="-1">Tap / Flip</button>
+        <button id="rightBtn" class="btn right" tabindex="-1">Right →</button>
       </section>
 
       <p class="hint">Swipe left = wrong, swipe right = right</p>

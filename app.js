@@ -213,6 +213,38 @@ function applyFilters() {
   render();
 }
 
+function refreshDeck({ preserveCode = null, reshuffle = false } = {}) {
+  const previousCode = preserveCode ?? cards[i]?.code ?? null;
+  const allSelected = selectedContinents.length === ALL_CONTINENTS.length;
+
+  cards = allCards.filter((c) => {
+    if (rightCodes.has(c.code)) return false;
+    if (!allSelected && !selectedContinents.includes(c.continent)) return false;
+    if (!includeMicrostates && c.microstate) return false;
+    return true;
+  });
+
+  if (reshuffle && cards.length > 1) {
+    shuffle(cards);
+  }
+
+  codeToIndex = new Map(cards.map((c, idx) => [c.code, idx]));
+
+  if (!cards.length) {
+    i = 0;
+    return;
+  }
+
+  if (previousCode && codeToIndex.has(previousCode)) {
+    i = codeToIndex.get(previousCode);
+    return;
+  }
+
+  if (i >= cards.length || i < 0) {
+    i = 0;
+  }
+}
+
 function flashScore(el, type) {
   const cls = type === 'right' ? 'flash-right' : 'flash-wrong';
   el.classList.remove('flash-right', 'flash-wrong');
@@ -310,21 +342,21 @@ function render() {
 function nextCard() {
   if (!hasCards()) return;
 
+  const currentCode = cards[i]?.code;
   flipped = false;
 
-  // Remove the current card if it was just marked correct
-  if (rightCodes.has(cards[i]?.code)) {
-    cards.splice(i, 1);
-    codeToIndex = new Map(cards.map((c, idx) => [c.code, idx]));
+  if (rightCodes.has(currentCode)) {
+    refreshDeck({ preserveCode: null });
   } else {
-    i += 1;
-  }
+    const nextIndex = i + 1;
+    const wrapped = nextIndex >= cards.length;
+    i = wrapped ? 0 : nextIndex;
 
-  // Wrapped around — reshuffle for variety
-  if (i >= cards.length) {
-    shuffle(cards);
-    codeToIndex = new Map(cards.map((c, idx) => [c.code, idx]));
-    i = 0;
+    if (wrapped) {
+      refreshDeck({ preserveCode: cards[i]?.code ?? null, reshuffle: true });
+    } else {
+      codeToIndex = new Map(cards.map((c, idx) => [c.code, idx]));
+    }
   }
 
   resetCardVisualState();
@@ -433,10 +465,15 @@ async function gradeFromSwipe(ok, dx) {
   gradingInProgress = true;
   const gradeToken = ++activeGradeToken;
 
-  history.push(cards[i].code);
-
   const currentCode = cards[i].code;
+  history.push(currentCode);
+
   trackCode(currentCode, ok);
+  if (ok) {
+    feedback('correct');
+  } else {
+    feedback('wrong');
+  }
   showToast(ok ? 'Correct!' : 'Wrong');
   render();
   flashScore(ok ? rightScoreEl : wrongScoreEl, ok ? 'right' : 'wrong');
@@ -451,9 +488,14 @@ async function gradeFromSwipe(ok, dx) {
 
     if (gradeToken !== activeGradeToken) return;
 
-    // Load next card content offscreen below
+    const nextIndex = ok ? i : i + 1;
+    const wrapped = nextIndex >= cards.length;
     flipped = false;
-    i = (i + 1) % cards.length;
+    i = wrapped ? 0 : nextIndex;
+    refreshDeck({
+      preserveCode: ok ? null : cards[i]?.code ?? null,
+      reshuffle: wrapped,
+    });
     render();
     clearCardFeedback();
     clearSwipeFeedback();

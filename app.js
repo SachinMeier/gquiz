@@ -64,6 +64,8 @@ let activeModalType = null;
 let searchMatches = [];
 let searchActiveIndex = 0;
 let history = [];
+let passSize = 0;
+let passIndex = 0;
 
 if (!['outlines', 'flags', 'capitals'].includes(mode)) {
   mode = 'outlines';
@@ -75,6 +77,40 @@ function norm(s) {
 
 function hasCards() {
   return cardsLoaded && cards.length > 0;
+}
+
+function isDeckComplete() {
+  return cardsLoaded && !initError && cards.length === 0;
+}
+
+function getFilterEligibleCodes() {
+  const allSelected = selectedContinents.length === ALL_CONTINENTS.length;
+  return allCards
+    .filter((c) => {
+      if (!allSelected && !selectedContinents.includes(c.continent)) return false;
+      if (!includeMicrostates && c.microstate) return false;
+      return true;
+    })
+    .map((c) => c.code);
+}
+
+function getFilteredScoreCodes(sourceSet) {
+  const eligibleCodes = new Set(getFilterEligibleCodes());
+  return [...sourceSet].filter((code) => eligibleCodes.has(code));
+}
+
+function getFilteredScoreCount(sourceSet) {
+  return getFilteredScoreCodes(sourceSet).length;
+}
+
+function syncPassSize() {
+  passSize = cards.length;
+  passIndex = cards.length > 0 ? Math.min(passIndex, cards.length - 1) : 0;
+}
+
+function resetPassProgress() {
+  syncPassSize();
+  passIndex = cards.length > 0 ? 0 : 0;
 }
 
 function setGameplayEnabled(enabled) {
@@ -127,12 +163,52 @@ function trackCode(code, ok) {
   persistCodes();
 }
 
+function clearFilteredCorrectCodes() {
+  const eligibleCodes = new Set(getFilterEligibleCodes());
+  let removed = 0;
+
+  for (const code of [...rightCodes]) {
+    if (!eligibleCodes.has(code)) continue;
+    rightCodes.delete(code);
+    removed += 1;
+  }
+
+  if (removed === 0) return false;
+
+  persistCodes();
+  cancelPendingGrade();
+  applyFilters();
+  showToast(removed === 1 ? 'Cleared 1 correct card' : `Cleared ${removed} correct cards`);
+  return true;
+}
+
+function clearFilteredScoreCodes(type) {
+  const targetSet = type === 'right' ? rightCodes : wrongCodes;
+  const filteredCodes = getFilteredScoreCodes(targetSet);
+
+  if (filteredCodes.length === 0) return false;
+
+  for (const code of filteredCodes) {
+    targetSet.delete(code);
+  }
+
+  persistCodes();
+  cancelPendingGrade();
+  applyFilters();
+  showToast(
+    filteredCodes.length === 1
+      ? `Cleared 1 ${type === 'right' ? 'correct' : 'wrong'} card`
+      : `Cleared ${filteredCodes.length} ${type === 'right' ? 'correct' : 'wrong'} cards`
+  );
+  return true;
+}
+
 function openScoreModal(type) {
   activeModalType = type;
-  const codes = type === 'right' ? rightCodes : wrongCodes;
+  const codes = getFilteredScoreCodes(type === 'right' ? rightCodes : wrongCodes);
   scoreModalTitle.textContent = type === 'right' ? 'Right Answers' : 'Wrong Answers';
 
-  if (codes.size === 0) {
+  if (codes.length === 0) {
     scoreModalList.innerHTML = '<li><span class="empty-msg">No countries yet.</span></li>';
   } else {
     const sorted = [...codes]
@@ -165,6 +241,7 @@ function jumpToCountry(code) {
 
   cancelPendingGrade();
   i = target;
+  passIndex = target;
   flipped = false;
   resetCardVisualState();
   hideSearchResults();
@@ -198,9 +275,8 @@ function applyFilters() {
     if (!includeMicrostates && c.microstate) return false;
     return true;
   });
-  // Keep current card visible so user can finish interacting with it
-  if (cards.length === 0 && prevCard) {
-    cards = [prevCard];
+  if (cards.length > 1) {
+    shuffle(cards);
   }
   codeToIndex = new Map(cards.map((c, idx) => [c.code, idx]));
   // Stay on the same card if it's still in the filtered deck
@@ -210,11 +286,13 @@ function applyFilters() {
   } else {
     i = 0;
   }
+  resetPassProgress();
+  passIndex = i;
   render();
 }
 
 function refreshDeck({ preserveCode = null, reshuffle = false } = {}) {
-  const previousCode = preserveCode ?? cards[i]?.code ?? null;
+  const previousCode = preserveCode === undefined ? (cards[i]?.code ?? null) : preserveCode;
   const allSelected = selectedContinents.length === ALL_CONTINENTS.length;
 
   cards = allCards.filter((c) => {
@@ -232,6 +310,8 @@ function refreshDeck({ preserveCode = null, reshuffle = false } = {}) {
 
   if (!cards.length) {
     i = 0;
+    resetPassProgress();
+    passIndex = 0;
     return;
   }
 
@@ -311,18 +391,25 @@ function backContent(c) {
 
 function render() {
   if (!hasCards()) {
-    progressEl.textContent = '0 / 0';
-    rightScoreEl.textContent = `✅ ${rightCodes.size}`;
-    wrongScoreEl.textContent = `❌ ${wrongCodes.size}`;
+    progressEl.textContent = passSize > 0 ? `${passSize} / ${passSize}` : '0 / 0';
+    rightScoreEl.textContent = `✅ ${getFilteredScoreCount(rightCodes)}`;
+    wrongScoreEl.textContent = `❌ ${getFilteredScoreCount(wrongCodes)}`;
+    setGameplayEnabled(false);
 
     if (initError) {
       front.innerHTML = '<div class="label">Unable to load cards</div>';
       back.innerHTML = '<div class="label">Please refresh to retry</div>';
       card.classList.remove('flipped');
+    } else if (isDeckComplete()) {
+      front.innerHTML = '<div class="complete-state"><div class="label top">Congratulations!</div><div class="label muted complete-subtitle">Reset your Correct List or select a new filter to see more cards.</div><button type="button" class="btn neutral complete-reset-btn" data-action="clear-filtered-correct">Clear Correct List</button></div>';
+      back.innerHTML = front.innerHTML;
+      card.classList.remove('flipped');
+      resetCardVisualState();
     }
     return;
   }
 
+  setGameplayEnabled(true);
   if (i >= cards.length || i < 0) i = 0;
 
   const c = cards[i];
@@ -330,9 +417,9 @@ function render() {
   back.innerHTML = backContent(c);
   card.classList.toggle('flipped', flipped);
 
-  const progressText = `${i + 1} / ${cards.length}`;
-  const rightText = `✅ ${rightCodes.size}`;
-  const wrongText = `❌ ${wrongCodes.size}`;
+  const progressText = `${Math.min(passIndex + 1, passSize || cards.length)} / ${passSize || cards.length}`;
+  const rightText = `✅ ${getFilteredScoreCount(rightCodes)}`;
+  const wrongText = `❌ ${getFilteredScoreCount(wrongCodes)}`;
   if (progressEl.textContent !== progressText) progressEl.textContent = progressText;
   if (rightScoreEl.textContent !== rightText) rightScoreEl.textContent = rightText;
   if (wrongScoreEl.textContent !== wrongText) wrongScoreEl.textContent = wrongText;
@@ -346,14 +433,22 @@ function nextCard() {
   flipped = false;
 
   if (rightCodes.has(currentCode)) {
-    refreshDeck({ preserveCode: null });
+    const completedPass = passIndex + 1 >= passSize;
+    refreshDeck({ preserveCode: null, reshuffle: completedPass });
+    if (completedPass) {
+      resetPassProgress();
+    } else if (passSize > 0) {
+      passIndex = Math.min(passIndex + 1, passSize);
+    }
   } else {
     const nextIndex = i + 1;
     const wrapped = nextIndex >= cards.length;
+    passIndex = wrapped ? 0 : Math.min(passIndex + 1, passSize - 1);
     i = wrapped ? 0 : nextIndex;
 
     if (wrapped) {
-      refreshDeck({ preserveCode: cards[i]?.code ?? null, reshuffle: true });
+      refreshDeck({ preserveCode: null, reshuffle: true });
+      resetPassProgress();
     } else {
       codeToIndex = new Map(cards.map((c, idx) => [c.code, idx]));
     }
@@ -379,6 +474,7 @@ function goBack() {
 
   const target = codeToIndex.get(code);
   if (target !== undefined) i = target;
+  passIndex = Math.max(passIndex - 1, 0);
 
   flipped = false;
   resetCardVisualState();
@@ -431,7 +527,12 @@ function toggleFlip() {
   card.classList.toggle('flipped', flipped);
 }
 
-card.addEventListener('click', () => {
+card.addEventListener('click', (e) => {
+  const target = e.target instanceof Element ? e.target : null;
+  if (target?.closest('[data-action="clear-filtered-correct"]')) {
+    clearFilteredCorrectCodes();
+    return;
+  }
   toggleFlip();
   card.blur();
 });
@@ -490,12 +591,17 @@ async function gradeFromSwipe(ok, dx) {
 
     const nextIndex = ok ? i : i + 1;
     const wrapped = nextIndex >= cards.length;
+    const completedPass = ok && passIndex + 1 >= passSize;
     flipped = false;
+    passIndex = wrapped ? 0 : Math.min(passIndex + 1, passSize - 1);
     i = wrapped ? 0 : nextIndex;
     refreshDeck({
-      preserveCode: ok ? null : cards[i]?.code ?? null,
-      reshuffle: wrapped,
+      preserveCode: wrapped || completedPass ? null : cards[i]?.code ?? null,
+      reshuffle: wrapped || completedPass,
     });
+    if (wrapped || completedPass) {
+      resetPassProgress();
+    }
     render();
     clearCardFeedback();
     clearSwipeFeedback();
@@ -739,14 +845,8 @@ scoreModal.addEventListener('click', (e) => {
 });
 
 clearListBtn.addEventListener('click', () => {
-  if (activeModalType === 'right') {
-    rightCodes.clear();
-    persistCodes();
-    applyFilters();
-  } else {
-    wrongCodes.clear();
-    persistCodes();
-  }
+  if (!activeModalType) return;
+  clearFilteredScoreCodes(activeModalType);
   scoreModalList.innerHTML = '<li><span class="empty-msg">No countries yet.</span></li>';
   render();
 });
@@ -821,6 +921,8 @@ document.addEventListener('click', (e) => {
     cardsLoaded = false;
     allCards = [];
     cards = [];
+    passSize = 0;
+    passIndex = 0;
     codeToIndex = new Map();
     hideSearchResults();
     setGameplayEnabled(false);

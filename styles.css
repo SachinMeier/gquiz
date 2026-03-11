@@ -191,6 +191,29 @@ body {
 .label.top { margin-top: 0; margin-bottom: 8px; }
 .label.muted { color: var(--muted); font-weight: 600; }
 
+.complete-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.complete-subtitle {
+  height: auto;
+  min-height: 3.4rem;
+  flex: 0 0 auto;
+  margin-bottom: 16px;
+  padding-inline: 8px;
+  align-items: center;
+}
+
+.complete-reset-btn {
+  align-self: center;
+  min-width: 220px;
+  cursor: pointer;
+}
+
 .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 
 .btn {
@@ -259,7 +282,11 @@ body {
 .header-selects select:focus { outline: 2px solid #475569; outline-offset: 1px; }
 
 /* Continent multi-select dropdown */
-.continent-dropdown { position: relative; }
+.continent-dropdown {
+  position: relative;
+  width: 180px;
+  flex: 0 0 180px;
+}
 
 .continent-btn {
   background: #1f2937;
@@ -270,10 +297,11 @@ body {
   font-size: 0.85rem;
   font-family: inherit;
   cursor: pointer;
+  width: 100%;
   white-space: nowrap;
-  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: left;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239ca3af'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 8px center;

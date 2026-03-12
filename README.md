@@ -27,3 +27,18 @@ SVGs are synced from `mapsicon` and kept with original filenames.
 python3 -m http.server 8080
 # then open http://localhost:8080
 ```
+
+## Test locally
+```bash
+npm install
+npx playwright install --with-deps chromium
+npm test
+```
+
+## CI and deploy
+GitHub Actions now runs the browser and data suite on every branch push, on `master`, and on pull requests.
+
+- Branches: test job only
+- `master` pushes: test job, then deploy if tests pass
+
+If the repository is still configured to publish GitHub Pages directly from a branch, switch Pages to the GitHub Actions source so the new gated deploy job becomes the only deploy path.

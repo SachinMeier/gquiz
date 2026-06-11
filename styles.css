@@ -45,6 +45,34 @@ body {
   padding: 8px 10px;
 }
 
+.search-toggle {
+  display: none;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  flex: 0 0 30px;
+}
+
+.search-toggle svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.search-toggle[aria-expanded="true"] {
+  background: #334155;
+  border-color: #64748b;
+  color: #e5e7eb;
+}
+
 .stats { display: flex; justify-content: space-between; align-items: center; color: var(--muted); }
 
 .back-btn {
@@ -374,6 +402,34 @@ body {
   .app {
     max-width: none;
     gap: 10px;
+  }
+
+  .topbar > div {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .header-selects {
+    align-items: center;
+    width: 100%;
+  }
+
+  .continent-dropdown {
+    flex: 1 1 150px;
+    min-width: 0;
+    width: auto;
+  }
+
+  .search-toggle {
+    display: inline-flex;
+  }
+
+  .search-wrap {
+    display: none;
+  }
+
+  .app.search-open .search-wrap {
+    display: block;
   }
 
   .card-wrap {

@@ -31,6 +31,30 @@ test('renders a chosen card correctly in outlines, flags, and capitals modes', a
   await expect(page.locator('#back')).toContainText('Tokyo');
 });
 
+test('hides mobile search until the icon button opens it', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await bootApp(page);
+
+  const searchToggle = page.locator('#searchToggle');
+  const countrySearch = page.locator('#countrySearch');
+
+  await expect(searchToggle).toBeVisible();
+  await expect(searchToggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(countrySearch).toBeHidden();
+
+  await searchToggle.click();
+  await expect(countrySearch).toBeVisible();
+  await expect(searchToggle).toHaveAttribute('aria-expanded', 'true');
+
+  await countrySearch.fill('jap');
+  await expect(page.locator('#searchResults li', { hasText: 'Japan' }).first()).toBeVisible();
+
+  await searchToggle.click();
+  await expect(countrySearch).toBeHidden();
+  await expect(searchToggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('#searchResults')).toBeHidden();
+});
+
 test('grades a card as correct and restores it through history', async ({ page }) => {
   await bootApp(page);
   await page.locator('#modeSelect').selectOption('capitals');

@@ -18,6 +18,7 @@ const backBtn = document.getElementById('backBtn');
 
 const countrySearch = document.getElementById('countrySearch');
 const searchResults = document.getElementById('searchResults');
+const searchToggle = document.getElementById('searchToggle');
 
 const scoreModal = document.getElementById('scoreModal');
 const scoreModalTitle = document.getElementById('scoreModalTitle');
@@ -66,6 +67,7 @@ let searchActiveIndex = 0;
 let history = [];
 let passSize = 0;
 let passIndex = 0;
+const mobileSearchMedia = window.matchMedia('(max-width: 768px)');
 
 if (!['outlines', 'flags', 'capitals'].includes(mode)) {
   mode = 'outlines';
@@ -233,6 +235,30 @@ function hideSearchResults() {
   searchActiveIndex = 0;
 }
 
+function setMobileSearchOpen(open, { focus = false } = {}) {
+  app.classList.toggle('search-open', open);
+  searchToggle.setAttribute('aria-expanded', String(open));
+  searchToggle.setAttribute('aria-label', open ? 'Close country search' : 'Open country search');
+
+  if (!open) {
+    hideSearchResults();
+    if (document.activeElement === countrySearch) {
+      countrySearch.blur();
+    }
+    return;
+  }
+
+  if (focus) {
+    countrySearch.focus();
+  }
+}
+
+function closeMobileSearch() {
+  if (mobileSearchMedia.matches) {
+    setMobileSearchOpen(false);
+  }
+}
+
 function jumpToCountry(code) {
   if (!hasCards()) return;
 
@@ -246,6 +272,7 @@ function jumpToCountry(code) {
   resetCardVisualState();
   hideSearchResults();
   render();
+  closeMobileSearch();
 }
 
 function renderSearchResults() {
@@ -758,6 +785,11 @@ continentPanel.addEventListener('change', (e) => {
   applyFilters();
 });
 
+searchToggle.addEventListener('click', () => {
+  const shouldOpen = !app.classList.contains('search-open');
+  setMobileSearchOpen(shouldOpen, { focus: shouldOpen });
+});
+
 countrySearch.addEventListener('focus', () => {
   countrySearch.value = '';
   hideSearchResults();
@@ -787,6 +819,13 @@ countrySearch.addEventListener('input', () => {
 });
 
 countrySearch.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    hideSearchResults();
+    closeMobileSearch();
+    return;
+  }
+
   if (!searchMatches.length) return;
 
   if (e.key === 'ArrowDown') {
@@ -803,8 +842,6 @@ countrySearch.addEventListener('keydown', (e) => {
     if (!chosen) return;
     jumpToCountry(chosen.code);
     countrySearch.value = `${chosen.name} (${chosen.code})`;
-  } else if (e.key === 'Escape') {
-    hideSearchResults();
   }
 });
 
@@ -854,8 +891,9 @@ clearListBtn.addEventListener('click', () => {
 document.addEventListener('click', (e) => {
   const target = e.target;
 
-  if (target !== countrySearch && !searchResults.contains(target)) {
+  if (target !== countrySearch && !searchResults.contains(target) && !searchToggle.contains(target)) {
     hideSearchResults();
+    closeMobileSearch();
   }
 
   if (!continentDropdown.contains(target)) {

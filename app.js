@@ -54,6 +54,7 @@ let i = 0;
 let wrongCodes = new Set(JSON.parse(localStorage.getItem(WRONG_CODES_KEY) || '[]'));
 let rightCodes = new Set(JSON.parse(localStorage.getItem(RIGHT_CODES_KEY) || '[]'));
 let flipped = false;
+let renderedCode = null;
 let gradingInProgress = false;
 let cardsLoaded = false;
 let initError = null;
@@ -417,6 +418,13 @@ function backContent(c) {
 }
 
 function render() {
+  if (hasCards() && (i >= cards.length || i < 0)) i = 0;
+  const currentCode = hasCards() ? cards[i].code : null;
+  if (currentCode !== renderedCode) {
+    resetCardVisualState();
+    renderedCode = currentCode;
+  }
+
   if (!hasCards()) {
     progressEl.textContent = passSize > 0 ? `${passSize} / ${passSize}` : '0 / 0';
     rightScoreEl.textContent = `✅ ${getFilteredScoreCount(rightCodes)}`;
@@ -437,8 +445,6 @@ function render() {
   }
 
   setGameplayEnabled(true);
-  if (i >= cards.length || i < 0) i = 0;
-
   const c = cards[i];
   front.innerHTML = frontContent(c);
   back.innerHTML = backContent(c);
@@ -629,6 +635,7 @@ async function gradeFromSwipe(ok, dx) {
     if (wrapped || completedPass) {
       resetPassProgress();
     }
+    resetCardVisualState();
     render();
     clearCardFeedback();
     clearSwipeFeedback();
@@ -680,12 +687,19 @@ function setSwipeFeedback(dx) {
 
 function resetCardTransform() {
   card.classList.remove('swipe-out-right', 'swipe-out-left');
-  card.style.transition = '';
+  card.style.transition = 'none';
+  card.classList.remove('flipped');
   card.style.transform = '';
+  card.style.opacity = '';
+  // Commit the front-facing transform before replacing content or restoring
+  // transitions. Otherwise the new answer is visible during the old unflip.
+  void card.offsetHeight;
+  card.style.transition = '';
   clearSwipeFeedback();
 }
 
 function resetCardVisualState() {
+  flipped = false;
   clearCardFeedback();
   resetCardTransform();
 }

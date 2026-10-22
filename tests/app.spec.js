@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+test.use({ serviceWorkers: 'block' });
 const {
   sampleCards,
   sampleCountries,

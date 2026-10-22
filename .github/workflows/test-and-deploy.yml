@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - '**'
-  pull_request:
 
 permissions:
   contents: read
@@ -64,7 +63,7 @@ jobs:
       - name: Prepare static artifact
         run: |
           mkdir -p dist
-          cp index.html app.js styles.css CNAME dist/
+          cp index.html app.js styles.css sw.js CNAME dist/
           cp -R data country-shapes dist/
 
       - name: Upload GitHub Pages artifact

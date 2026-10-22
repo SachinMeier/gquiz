@@ -16,6 +16,9 @@ rsync -a --delete \
   --include '*/' --include '*.svg' --exclude '*' \
   vendor/mapsicon/ country-shapes/
 
+# Reapply corrected geography after syncing upstream icons.
+python3 scripts/generate_bahamas_shape.py
+
 python3 - <<'PY'
 import json, os
 root='country-shapes'

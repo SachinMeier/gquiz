@@ -53,7 +53,10 @@
       </section>
 
       <section class="stats" aria-live="polite">
-        <button id="backBtn" class="back-btn" tabindex="-1" aria-label="Previous card" disabled>&#8634;</button>
+        <div class="study-tools">
+          <button id="backBtn" class="back-btn" tabindex="-1" aria-label="Previous card" disabled>&#8634;</button>
+          <button id="freezeBtn" class="back-btn freeze-btn" type="button" aria-label="Freeze score lists" aria-pressed="false"><span aria-hidden="true">❄️</span></button>
+        </div>
         <span id="progress">0 / 0</span>
         <span id="score"><span id="wrongScore" class="score-tap" role="button" tabindex="-1">❌ 0</span> <span id="rightScore" class="score-tap" role="button" tabindex="-1">✅ 0</span></span>
       </section>
@@ -72,6 +75,7 @@
       </section>
 
       <p class="hint">Swipe left = wrong, swipe right = right</p>
+      <p id="offlineStatus" class="offline-status" role="status"></p>
       <div id="toast" class="toast" aria-live="assertive"></div>
 
       <dialog id="scoreModal" class="score-modal">

@@ -15,6 +15,7 @@ const wrongBtn = document.getElementById('wrongBtn');
 const rightBtn = document.getElementById('rightBtn');
 const flipBtn = document.getElementById('flipBtn');
 const backBtn = document.getElementById('backBtn');
+const freezeBtn = document.getElementById('freezeBtn');
 
 const countrySearch = document.getElementById('countrySearch');
 const searchResults = document.getElementById('searchResults');
@@ -32,6 +33,8 @@ const CONTINENT_STORAGE_KEY = 'geolearn.continent';
 const MICROSTATE_STORAGE_KEY = 'geolearn.includeMicrostates';
 const WRONG_CODES_KEY = 'geolearn.wrongCodes';
 const RIGHT_CODES_KEY = 'geolearn.rightCodes';
+const FREEZE_KEY = 'geolearn.freeze';
+let freezeMode = localStorage.getItem(FREEZE_KEY) === 'true';
 const ALL_CONTINENTS = ['Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
 let mode = localStorage.getItem(MODE_STORAGE_KEY) || 'outlines';
 
@@ -126,6 +129,7 @@ function setGameplayEnabled(enabled) {
 function cancelPendingGrade() {
   activeGradeToken += 1;
   gradingInProgress = false;
+  resetCardVisualState();
 }
 
 function scoreMatch(cardItem, query) {
@@ -156,6 +160,7 @@ function persistCodes() {
 }
 
 function trackCode(code, ok) {
+  if (freezeMode) return;
   if (ok) {
     rightCodes.add(code);
     wrongCodes.delete(code);
@@ -459,13 +464,12 @@ function render() {
   backBtn.disabled = history.length === 0;
 }
 
-function nextCard() {
+function nextCard({ removeCurrent = rightCodes.has(cards[i]?.code) } = {}) {
   if (!hasCards()) return;
 
-  const currentCode = cards[i]?.code;
   flipped = false;
 
-  if (rightCodes.has(currentCode)) {
+  if (removeCurrent) {
     const completedPass = passIndex + 1 >= passSize;
     refreshDeck({ preserveCode: null, reshuffle: completedPass });
     if (completedPass) {
@@ -516,41 +520,58 @@ function goBack() {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function grade(ok) {
+// The pause includes the 220ms flip, leaving the answer readable before exit.
+const ANSWER_PREVIEW_MS = 700;
+
+async function grade(ok, swipeDx = null) {
   if (!hasCards() || gradingInProgress) return;
   gradingInProgress = true;
   const gradeToken = ++activeGradeToken;
-
+  const removeCurrent = !freezeMode && ok;
   history.push(cards[i].code);
+  trackCode(cards[i].code, ok);
 
-  // Always show answer before scoring if hidden.
-  if (!flipped) {
-    flipped = true;
-    render();
-  }
-
-  const currentCode = cards[i].code;
-  trackCode(currentCode, ok);
-  if (ok) {
-    feedback('correct');
-    showToast('Correct!');
-  } else {
-    feedback('wrong');
-    showToast('Wrong');
-  }
+  flipped = true;
+  feedback(ok ? 'correct' : 'wrong');
+  showToast(ok ? 'Correct!' : 'Wrong');
   render();
-  flashScore(ok ? rightScoreEl : wrongScoreEl, ok ? 'right' : 'wrong');
+  // A swipe leaves an inline transform that would otherwise override the flip.
+  // Bring the current card back to the center to show its answer before exit.
+  card.style.transition = '';
+  card.style.transform = '';
+  if (!freezeMode) flashScore(ok ? rightScoreEl : wrongScoreEl, ok ? 'right' : 'wrong');
 
   try {
-    // Keep feedback visible while answer is shown.
-    await sleep(1500);
-
+    await sleep(ANSWER_PREVIEW_MS);
     if (gradeToken !== activeGradeToken) return;
-    nextCard();
-  } finally {
-    if (gradeToken === activeGradeToken) {
-      gradingInProgress = false;
+
+    if (swipeDx !== null) {
+      const direction = Math.sign(swipeDx);
+      const exitX = direction * Math.max(window.innerWidth * 0.9, 320);
+      card.style.transition = 'transform 220ms ease-out';
+      card.style.transform = `translateX(${exitX}px) rotate(${direction * SWIPE_EXIT_ROTATION}deg) rotateY(180deg)`;
+      await sleep(240);
+      if (gradeToken !== activeGradeToken) return;
     }
+
+    // nextCard commits a transition-free, front-facing state BEFORE render
+    // replaces either face. Never animate an unflip using the next answer.
+    nextCard({ removeCurrent });
+    if (swipeDx !== null) {
+      card.style.transition = 'none';
+      card.style.transform = 'translateY(60px)';
+      card.style.opacity = '0';
+      void card.offsetHeight;
+      card.style.transition = 'transform 280ms cubic-bezier(.22,.61,.36,1), opacity 280ms ease';
+      card.style.transform = '';
+      card.style.opacity = '1';
+      await sleep(290);
+      if (gradeToken !== activeGradeToken) return;
+      card.style.transition = '';
+      card.style.opacity = '';
+    }
+  } finally {
+    if (gradeToken === activeGradeToken) gradingInProgress = false;
   }
 }
 
@@ -575,6 +596,17 @@ wrongBtn.addEventListener('click', () => grade(false));
 backBtn.addEventListener('click', goBack);
 flipBtn.addEventListener('click', toggleFlip);
 
+function syncFreezeButton() {
+  freezeBtn.setAttribute('aria-pressed', String(freezeMode));
+  freezeBtn.title = freezeMode ? 'Freeze on: grades keep your lists unchanged' : 'Freeze off: grades update your lists';
+}
+syncFreezeButton();
+freezeBtn.addEventListener('click', () => {
+  freezeMode = !freezeMode;
+  localStorage.setItem(FREEZE_KEY, String(freezeMode));
+  syncFreezeButton();
+});
+
 window.addEventListener('keydown', (e) => {
   const tag = (document.activeElement?.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea') return;
@@ -593,74 +625,6 @@ window.addEventListener('keydown', (e) => {
     goBack();
   }
 });
-
-async function gradeFromSwipe(ok, dx) {
-  if (!hasCards() || gradingInProgress) return;
-  gradingInProgress = true;
-  const gradeToken = ++activeGradeToken;
-
-  const currentCode = cards[i].code;
-  history.push(currentCode);
-
-  trackCode(currentCode, ok);
-  if (ok) {
-    feedback('correct');
-  } else {
-    feedback('wrong');
-  }
-  showToast(ok ? 'Correct!' : 'Wrong');
-  render();
-  flashScore(ok ? rightScoreEl : wrongScoreEl, ok ? 'right' : 'wrong');
-
-  const exitX = (dx > 0 ? 1 : -1) * Math.max(window.innerWidth * 0.9, 320);
-  card.classList.add(dx > 0 ? 'swipe-out-right' : 'swipe-out-left');
-  card.style.transition = 'transform 220ms ease-out';
-  card.style.transform = `translateX(${exitX}px) rotate(${dx > 0 ? SWIPE_EXIT_ROTATION : -SWIPE_EXIT_ROTATION}deg)${flipped ? ' rotateY(180deg)' : ''}`;
-
-  try {
-    await sleep(240);
-
-    if (gradeToken !== activeGradeToken) return;
-
-    const nextIndex = ok ? i : i + 1;
-    const wrapped = nextIndex >= cards.length;
-    const completedPass = ok && passIndex + 1 >= passSize;
-    flipped = false;
-    passIndex = wrapped ? 0 : Math.min(passIndex + 1, passSize - 1);
-    i = wrapped ? 0 : nextIndex;
-    refreshDeck({
-      preserveCode: wrapped || completedPass ? null : cards[i]?.code ?? null,
-      reshuffle: wrapped || completedPass,
-    });
-    if (wrapped || completedPass) {
-      resetPassProgress();
-    }
-    resetCardVisualState();
-    render();
-    clearCardFeedback();
-    clearSwipeFeedback();
-    card.classList.remove('swipe-out-right', 'swipe-out-left');
-    card.style.transition = 'none';
-    card.style.transform = 'translateY(60px)';
-    card.style.opacity = '0';
-
-    // Force reflow so the position takes effect before animating
-    void card.offsetHeight;
-
-    card.style.transition = 'transform 280ms cubic-bezier(.22,.61,.36,1), opacity 280ms ease';
-    card.style.transform = '';
-    card.style.opacity = '1';
-
-    await sleep(290);
-    if (gradeToken !== activeGradeToken) return;
-    card.style.transition = '';
-    card.style.opacity = '';
-  } finally {
-    if (gradeToken === activeGradeToken) {
-      gradingInProgress = false;
-    }
-  }
-}
 
 let startX = 0;
 let currentX = 0;
@@ -728,9 +692,9 @@ card.addEventListener('touchend', () => {
   const dx = currentX - startX;
 
   if (dx > SWIPE_THRESHOLD) {
-    gradeFromSwipe(true, dx);
+    grade(true, dx);
   } else if (dx < -SWIPE_THRESHOLD) {
-    gradeFromSwipe(false, dx);
+    grade(false, dx);
   } else {
     card.style.transition = 'transform 180ms ease-out';
     card.style.transform = `${flipped ? 'rotateY(180deg)' : ''}`;
@@ -882,6 +846,7 @@ scoreModal.addEventListener('click', (e) => {
 
   const removeBtn = e.target.closest('.remove-btn');
   if (!removeBtn) return;
+  cancelPendingGrade();
   const code = removeBtn.dataset.code;
   if (activeModalType === 'right') {
     rightCodes.delete(code);
@@ -982,3 +947,30 @@ document.addEventListener('click', (e) => {
     render();
   }
 })();
+
+// Offline preparation never blocks the first card. Retry missing assets on reconnect.
+const offlineStatus = document.getElementById('offlineStatus');
+async function prepareOffline() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    await navigator.serviceWorker.register('./sw.js');
+    const registration = await navigator.serviceWorker.ready;
+    registration.active.postMessage({ type: 'CACHE_DECK' });
+  } catch (error) {
+    offlineStatus.textContent = 'Offline saving unavailable';
+    console.warn('Offline preparation failed', error);
+  }
+}
+if ('serviceWorker' in navigator) {
+  // A worker update can finish after this page's initial warmup message.
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    navigator.serviceWorker.controller?.postMessage({ type: 'CACHE_DECK' });
+  });
+  navigator.serviceWorker.addEventListener('message', ({ data }) => {
+    if (data?.type !== 'CACHE_STATUS') return;
+    offlineStatus.textContent = data.ready ? 'Ready for offline play'
+      : data.failed ? 'Offline download incomplete — reconnect to retry' : 'Saving for offline play…';
+  });
+  window.addEventListener('online', prepareOffline);
+  prepareOffline();
+}

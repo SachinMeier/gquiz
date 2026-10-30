@@ -2,6 +2,12 @@
 
 Mobile-first static flashcard app for learning country shapes.
 
+## Branding and sharing
+
+The app includes a globe favicon, home-screen icons, and wide, X/Twitter, and
+square social covers. See [social assets](docs/social-assets.md) for filenames,
+dimensions, generation prompts, and icon regeneration instructions.
+
 ## Current MVP
 - Shows country shape (SVG)
 - Tap to reveal country name

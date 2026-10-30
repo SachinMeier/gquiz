@@ -63,8 +63,8 @@ jobs:
       - name: Prepare static artifact
         run: |
           mkdir -p dist
-          cp index.html app.js styles.css sw.js CNAME dist/
-          cp -R data country-shapes dist/
+          cp index.html app.js styles.css sw.js CNAME favicon.svg favicon.ico site.webmanifest dist/
+          cp -R data country-shapes images dist/
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3

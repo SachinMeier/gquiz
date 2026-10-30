@@ -1,5 +1,5 @@
 // Bump SHELL_CACHE whenever the app shell or deck data changes.
-const SHELL_CACHE = 'geolearn-shell-v2';
+const SHELL_CACHE = 'geolearn-shell-v3';
 const ASSET_CACHE = 'geolearn-images-v1';
 const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 // Refresh corrected outlines without discarding the rest of the offline deck.
@@ -7,7 +7,12 @@ const ASSET_REVISIONS = {
   '/country-shapes/all/bs/vector.svg': 'bahamas-2026-10-20',
   '/country-shapes/namerica/bs/vector.svg': 'bahamas-2026-10-20',
 };
-const SHELL_PATHS = ['/', '/index.html', '/app.js', '/styles.css', '/data/cards.json', '/data/countries.json'];
+const SHELL_PATHS = [
+  '/', '/index.html', '/app.js', '/styles.css', '/data/cards.json', '/data/countries.json',
+  '/favicon.svg', '/favicon.ico', '/site.webmanifest',
+  '/images/icons/favicon-16.png', '/images/icons/favicon-32.png',
+  '/images/icons/apple-touch-icon.png', '/images/icons/icon-192.png', '/images/icons/icon-512.png',
+];
 const inFlight = new Map();
 let warming = null;
 

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>GeoLearn</title>
+  <defs>
+    <linearGradient id="mint" x2="1" y2="1">
+      <stop stop-color="#a7f3d0"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="#0f172a"/>
+  <g fill="none" stroke="url(#mint)" stroke-width="3.5">
+    <circle cx="32" cy="32" r="22"/>
+    <ellipse cx="32" cy="32" rx="10" ry="22"/>
+    <path d="M11 32h42M15 19c10 6 24 6 34 0M15 45c10-6 24-6 34 0"/>
+  </g>
+  <circle cx="48" cy="17" r="7" fill="#0f172a"/>
+  <circle cx="48" cy="17" r="4.5" fill="#f8fafc"/>
+</svg>

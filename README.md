@@ -43,20 +43,22 @@ python3 -m http.server 8080
 # then open http://localhost:8080
 ```
 
-## Test locally
+## Verification
+
+Playwright was removed on 2026-11-02. Browser tests, their configuration, and the
+browser-based icon generator remain as source for future migration, but are
+currently disabled. Existing generated icons remain usable.
+
 ```bash
-npm install
-npx playwright install --with-deps chromium
-npm test
+node --check app.js
+node --check sw.js
 ```
 
 ## CI and deploy
-GitHub Actions runs the browser and data suite on every branch push, including `master`.
 
-- Branches: test job only
-- `master` pushes: test job, then deploy if tests pass
-
-If the repository is still configured to publish GitHub Pages directly from a branch, switch Pages to the GitHub Actions source so the new gated deploy job becomes the only deploy path.
+GitHub Actions checks JavaScript syntax on every branch push. The existing
+`master` deployment depends on that validation. Browser and data assertions from
+the retained Playwright suite no longer run in CI.
 
 ## Practice and offline use
 

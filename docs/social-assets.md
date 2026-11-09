@@ -1,5 +1,9 @@
 # GeoLearn social assets
 
+The Playwright icon generator is disabled following removal on 2026-11-02.
+The generator source and existing assets are retained; the generation instructions
+below are historical and require migration before reuse.
+
 The page head contains static Open Graph and X/Twitter card metadata so link
 crawlers can read it without JavaScript. Absolute URLs use the existing CNAME,
 `https://gquiz.pirategames.org/`. These changes are local until the site's normal
